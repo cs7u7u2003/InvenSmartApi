@@ -1,11 +1,10 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using InvenSmartApi.Models;
-using InvenSmartApi.Services;
 
 namespace InvenSmartApi.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("[controller]")]
 public class UsuariosController : ControllerBase
 {
     private readonly IUsuarioService _usuarioService;
@@ -15,14 +14,21 @@ public class UsuariosController : ControllerBase
         _usuarioService = usuarioService;
     }
 
-    [HttpPost]
+    [HttpGet]
     public async Task<IActionResult> GetUsuarioAsync(Credenciales credenciales)
     {
-        var usuario = await _usuarioService.GetUsuarioAsync(credenciales);
-        if (usuario == null)
+        try
         {
-            return NotFound();
+            var usuario = await _usuarioService.GetUsuarioAsync(credenciales);
+            return Ok(usuario);
         }
-        return Ok(usuario);
+        catch (NotFoundException ex)
+        {
+            return NotFound(new ApiError(404, ex.Message));
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiError(500, ex.Message));
+        }
     }
 }

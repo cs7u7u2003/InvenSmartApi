@@ -1,7 +1,7 @@
 ﻿using InvenSmartApi.Models;
 using InvenSmartApi.Repositories;
-
-namespace InvenSmartApi.Services;
+using System;
+using System.Threading.Tasks;
 
 public class UsuarioService : IUsuarioService
 {
@@ -14,6 +14,14 @@ public class UsuarioService : IUsuarioService
 
     public async Task<Usuario> GetUsuarioAsync(Credenciales credenciales)
     {
-        return await _usuarioRepository.GetUsuarioAsync(credenciales);
+        var usuario = await _usuarioRepository.GetUsuarioAsync(credenciales);
+        if (usuario != null)
+        {
+            return usuario;
+        }
+        else
+        {
+            throw new NotFoundException("Usuario no encontrado.");
+        }
     }
 }

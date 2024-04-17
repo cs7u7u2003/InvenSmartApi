@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+﻿using Microsoft.OpenApi.Models;
 
 public class Startup
 {
@@ -13,14 +9,16 @@ public class Startup
 
     public IConfiguration Configuration { get; }
 
-    // Este método se utiliza para configurar los servicios que la aplicación va a utilizar.
     public void ConfigureServices(IServiceCollection services)
     {
-        // Aquí se agregan los servicios necesarios para el funcionamiento de la aplicación.
+        services.AddSwaggerGen(c =>
+        {
+            c.SwaggerDoc("v1", new OpenApiInfo { Title = "InvenSmartApi", Version = "v1" });
+        });
+
         services.AddControllersWithViews();
     }
 
-    // Este método se utiliza para configurar el pipeline de middleware de la aplicación.
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
         if (env.IsDevelopment())
@@ -37,9 +35,7 @@ public class Startup
 
         app.UseHttpsRedirection();
         app.UseStaticFiles();
-
         app.UseRouting();
-
         app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>
