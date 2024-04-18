@@ -15,7 +15,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetUsuarioAsync(Credenciales credenciales)
+    public async Task<IActionResult> GetUsuarioAsync([FromQuery] Credenciales credenciales)
     {
         try
         {

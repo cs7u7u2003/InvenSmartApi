@@ -1,4 +1,5 @@
-﻿using Microsoft.OpenApi.Models;
+﻿using InvenSmartApi.Repositories;
+using Microsoft.OpenApi.Models;
 
 public class Startup
 {
@@ -17,15 +18,18 @@ public class Startup
         });
 
         services.AddControllersWithViews();
+        services.AddScoped<IUsuarioService, UsuarioService>();
+        services.AddScoped<IUsuarioRepository, UsuarioRepository>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
     {
+        app.UseSwagger();
+        app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "InvenSmartApi V1"));
+
         if (env.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
-            app.UseSwagger();
-            app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1"));
         }
         else
         {

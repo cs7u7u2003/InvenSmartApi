@@ -1,7 +1,5 @@
 ﻿using InvenSmartApi.Models;
 using InvenSmartApi.Repositories;
-using System;
-using System.Threading.Tasks;
 
 public class UsuarioService : IUsuarioService
 {
