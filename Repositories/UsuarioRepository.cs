@@ -1,35 +1,49 @@
-﻿using System;
-using System.Data;
-using System.Data.SqlClient;
+﻿using System.Data;
 using System.Threading.Tasks;
 using Dapper;
 using InvenSmartApi.Models;
+using Microsoft.Extensions.Configuration;
 
 namespace InvenSmartApi.Repositories
 {
     public class UsuarioRepository : IUsuarioRepository
     {
-        private readonly IConfiguration _config;
+        private readonly IDbConnection _dbConnection;
 
-        public UsuarioRepository(IConfiguration config)
+        public UsuarioRepository(IDbConnection dbConnection)
         {
-            _config = config;
+            _dbConnection = dbConnection;
         }
 
-        public async Task<Usuario> GetUsuarioAsync(Credenciales credenciales)
+        public async Task<UsuarioDto> GetUsuarioAsync(Credenciales credenciales)
         {
-            using var connection = new SqlConnection(_config.GetConnectionString("DefaultConnection"));
-            await connection.OpenAsync();
-
             var parameters = new DynamicParameters();
-            parameters.Add("@Usuario", credenciales.Usuario);
-            parameters.Add("@Password", credenciales.Password);
+            parameters.Add("@UserId", credenciales.Usuario);
 
-            var usuario = await connection.QueryFirstOrDefaultAsync<Usuario>("sp_ConsultarUsuario",
-                                                                            parameters,
-                                                                            commandType: CommandType.StoredProcedure);
+            return await _dbConnection.QueryFirstOrDefaultAsync<UsuarioDto>(
+                "[dbo].[sp_GetUsuarioByUserId]",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+        }
 
-            return usuario ?? throw new NotFoundException("Usuario no encontrado.");
+        public async Task<bool> InsertarUsuarioAsync(UsuarioDto usuario)
+        {
+            var parameters = new DynamicParameters();
+            parameters.Add("@Nombre", usuario.Nombre);
+            parameters.Add("@Apellido", usuario.Apellido);
+            parameters.Add("@UserId", usuario.UserId);
+            parameters.Add("@PasswordHash", usuario.PasswordHash);
+            parameters.Add("@PasswordSalt", usuario.PasswordSalt);
+            parameters.Add("@Cedula", usuario.Cedula);
+            parameters.Add("@PermissionId", usuario.PermissionId);
+            parameters.Add("@Comment", usuario.Comment);
+
+            var result = await _dbConnection.ExecuteAsync(
+                "[dbo].[sp_InsertarUsuario]",
+                parameters,
+                commandType: CommandType.StoredProcedure);
+
+            return result > 0;
         }
     }
 }

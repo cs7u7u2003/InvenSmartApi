@@ -1,5 +1,7 @@
 ﻿using InvenSmartApi.Repositories;
 using Microsoft.OpenApi.Models;
+using System.Data.SqlClient;
+using System.Data;
 
 public class Startup
 {
@@ -12,14 +14,34 @@ public class Startup
 
     public void ConfigureServices(IServiceCollection services)
     {
+        ConfigureCommonServices(services);
+        ConfigureCustomServices(services);
+    }
+
+    private void ConfigureCommonServices(IServiceCollection services)
+    {
         services.AddSwaggerGen(c =>
         {
             c.SwaggerDoc("v1", new OpenApiInfo { Title = "InvenSmartApi", Version = "v1" });
         });
 
+        services.AddTransient<IDbConnection>(_ => new SqlConnection(Configuration.GetConnectionString("ConnectionDb")));
+
         services.AddControllersWithViews();
-        services.AddScoped<IUsuarioService, UsuarioService>();
+
+        services.AddCors(options =>
+        {
+            options.AddPolicy("AllowAnyPolicy",
+                builder => builder.AllowAnyOrigin()
+                                  .AllowAnyMethod()
+                                  .AllowAnyHeader());
+        });
+    }
+
+    private void ConfigureCustomServices(IServiceCollection services)
+    {
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<IUsuarioService, UsuarioService>();
     }
 
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -36,10 +58,14 @@ public class Startup
             app.UseExceptionHandler("/Home/Error");
             app.UseHsts();
         }
-
+        app.UseCors("AllowAnyPolicy");
         app.UseHttpsRedirection();
         app.UseStaticFiles();
+
         app.UseRouting();
+
+        
+
         app.UseAuthorization();
 
         app.UseEndpoints(endpoints =>

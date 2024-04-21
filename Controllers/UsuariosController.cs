@@ -19,16 +19,31 @@ public class UsuariosController : ControllerBase
     {
         try
         {
-            var usuario = await _usuarioService.GetUsuarioAsync(credenciales);
-            return Ok(usuario);
-        }
-        catch (NotFoundException ex)
-        {
-            return NotFound(new ApiError(404, ex.Message));
+            return await _usuarioService.GetUsuarioAsync(credenciales);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new ApiError(500, ex.Message));
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+    [HttpPost]
+    public async Task<IActionResult> InsertarUsuarioAsync([FromQuery] UsuarioQuery usuario)
+    {
+        try
+        {
+            var result = await _usuarioService.InsertarUsuarioAsync(usuario);
+            if (result)
+            {
+                return Ok("Usuario creado correctamente.");
+            }
+            else
+            {
+                return BadRequest("No se pudo insertar el usuario.");
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Error interno del servidor: {ex.Message}");
         }
     }
 }
