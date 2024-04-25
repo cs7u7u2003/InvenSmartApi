@@ -20,11 +20,11 @@ public class UsuarioService : IUsuarioService
             {
                 return new OkObjectResult(usuario);
             }
-            return new NotFoundObjectResult(new { message = "El password no coincide." });
+            return new OkObjectResult(new { message = "El password no coincide." });
         }
         else
         {
-            return new NotFoundObjectResult(new { message = "Usuario no encontrado." });
+            return new OkObjectResult(new { message = "Usuario no encontrado." });
         }
     }
     public async Task<bool> InsertarUsuarioAsync(UsuarioQuery usuario)
