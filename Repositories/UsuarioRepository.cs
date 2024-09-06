@@ -1,8 +1,6 @@
 ﻿using System.Data;
-using System.Threading.Tasks;
 using Dapper;
 using InvenSmartApi.Models;
-using Microsoft.Extensions.Configuration;
 
 namespace InvenSmartApi.Repositories
 {
