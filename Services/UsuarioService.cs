@@ -2,8 +2,6 @@
 using InvenSmartApi.Repositories;
 using InvenSmartApi.Utils;
 using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Threading.Tasks;
 
 public class UsuarioService : IUsuarioService
 {
