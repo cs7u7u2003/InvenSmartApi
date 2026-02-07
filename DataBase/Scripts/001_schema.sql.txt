@@ -1,3 +1,7 @@
+/* ==========================
+   dbo.Usuarios
+========================== */
+
 IF OBJECT_ID('dbo.Usuarios','U') IS NULL
 BEGIN
   CREATE TABLE dbo.Usuarios(
@@ -10,10 +14,31 @@ BEGIN
     Cedula NVARCHAR(50) NULL,
     PermissionId INT NULL,
     Comment NVARCHAR(300) NULL,
-    IsActive BIT NOT NULL DEFAULT 1,
-    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    IsActive BIT NOT NULL CONSTRAINT DF_Usuarios_IsActive DEFAULT(1),
+    CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_Usuarios_CreatedAt DEFAULT SYSUTCDATETIME()
   );
 END;
+GO
+
+-- Si la tabla YA existe, asegurar columnas nuevas (migración ligera)
+IF COL_LENGTH('dbo.Usuarios', 'IsActive') IS NULL
+BEGIN
+    ALTER TABLE dbo.Usuarios
+    ADD IsActive BIT NOT NULL CONSTRAINT DF_Usuarios_IsActive DEFAULT(1);
+END
+GO
+
+IF COL_LENGTH('dbo.Usuarios', 'CreatedAt') IS NULL
+BEGIN
+    ALTER TABLE dbo.Usuarios
+    ADD CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_Usuarios_CreatedAt DEFAULT SYSUTCDATETIME();
+END
+GO
+
+
+/* ==========================
+   dbo.ErrorLog
+========================== */
 
 IF OBJECT_ID('dbo.ErrorLog','U') IS NULL
 BEGIN
@@ -23,30 +48,54 @@ BEGIN
     StackTrace NVARCHAR(MAX) NULL,
     ClassName NVARCHAR(300) NOT NULL,
     MethodName NVARCHAR(300) NOT NULL,
-    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+    CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_ErrorLog_CreatedAt DEFAULT SYSUTCDATETIME()
   );
 END;
+GO
 
--- sp_GetUsuarioByUserId
+IF COL_LENGTH('dbo.ErrorLog', 'CreatedAt') IS NULL
+BEGIN
+    ALTER TABLE dbo.ErrorLog
+    ADD CreatedAt DATETIME2 NOT NULL CONSTRAINT DF_ErrorLog_CreatedAt DEFAULT SYSUTCDATETIME();
+END
+GO
+
+
+/* ==========================
+   SP: sp_GetUsuarioByUserId
+========================== */
+
 IF OBJECT_ID('[dbo].[sp_GetUsuarioByUserId]','P') IS NULL
 EXEC('CREATE PROCEDURE [dbo].[sp_GetUsuarioByUserId] AS BEGIN SET NOCOUNT ON; END');
 GO
+
 ALTER PROCEDURE [dbo].[sp_GetUsuarioByUserId]
   @UserId NVARCHAR(100)
 AS
 BEGIN
   SET NOCOUNT ON;
+
   SELECT TOP 1
-    Id, Nombre, Apellido, UserId, PasswordHash, PasswordSalt, Cedula, PermissionId, Comment, IsActive
+    Id, Nombre, Apellido, UserId, PasswordHash, PasswordSalt, Cedula, PermissionId, Comment,
+    -- Si existe IsActive lo devuelve, si no, devuelve 1 (por seguridad)
+    CASE 
+      WHEN COL_LENGTH('dbo.Usuarios','IsActive') IS NULL THEN CAST(1 AS BIT)
+      ELSE IsActive
+    END AS IsActive
   FROM dbo.Usuarios
   WHERE UserId = @UserId;
 END
 GO
 
--- sp_InsertarUsuario
+
+/* ==========================
+   SP: sp_InsertarUsuario
+========================== */
+
 IF OBJECT_ID('[dbo].[sp_InsertarUsuario]','P') IS NULL
 EXEC('CREATE PROCEDURE [dbo].[sp_InsertarUsuario] AS BEGIN SET NOCOUNT ON; END');
 GO
+
 ALTER PROCEDURE [dbo].[sp_InsertarUsuario]
   @Nombre NVARCHAR(100),
   @Apellido NVARCHAR(100),
@@ -60,31 +109,46 @@ AS
 BEGIN
   SET NOCOUNT ON;
 
-  INSERT INTO dbo.Usuarios(Nombre, Apellido, UserId, PasswordHash, PasswordSalt, Cedula, PermissionId, Comment)
-  VALUES (@Nombre, @Apellido, @UserId, @PasswordHash, @PasswordSalt, @Cedula, @PermissionId, @Comment);
+  INSERT INTO dbo.Usuarios(
+    Nombre, Apellido, UserId, PasswordHash, PasswordSalt, Cedula, PermissionId, Comment
+  )
+  VALUES (
+    @Nombre, @Apellido, @UserId, @PasswordHash, @PasswordSalt, @Cedula, @PermissionId, @Comment
+  );
 
   SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
 END
 GO
 
--- spGetPermisosByUsuario (placeholder para tu PermisoRepository)
+
+/* ==========================
+   SP: spGetPermisosByUsuario (placeholder)
+========================== */
+
 IF OBJECT_ID('[dbo].[spGetPermisosByUsuario]','P') IS NULL
 EXEC('CREATE PROCEDURE [dbo].[spGetPermisosByUsuario] AS BEGIN SET NOCOUNT ON; END');
 GO
+
 ALTER PROCEDURE [dbo].[spGetPermisosByUsuario]
   @UserId INT
 AS
 BEGIN
   SET NOCOUNT ON;
+
   SELECT CAST(NULL AS INT) AS PermissionId, CAST(NULL AS NVARCHAR(100)) AS PermissionName
   WHERE 1 = 0;
 END
 GO
 
--- spInsertErrorLog (para tu ErrorLogger)
+
+/* ==========================
+   SP: spInsertErrorLog
+========================== */
+
 IF OBJECT_ID('[dbo].[spInsertErrorLog]','P') IS NULL
 EXEC('CREATE PROCEDURE [dbo].[spInsertErrorLog] AS BEGIN SET NOCOUNT ON; END');
 GO
+
 ALTER PROCEDURE [dbo].[spInsertErrorLog]
   @ErrorMessage NVARCHAR(4000),
   @StackTrace NVARCHAR(MAX) = NULL,
@@ -93,6 +157,7 @@ ALTER PROCEDURE [dbo].[spInsertErrorLog]
 AS
 BEGIN
   SET NOCOUNT ON;
+
   INSERT INTO dbo.ErrorLog(ErrorMessage, StackTrace, ClassName, MethodName)
   VALUES (@ErrorMessage, @StackTrace, @ClassName, @MethodName);
 END
