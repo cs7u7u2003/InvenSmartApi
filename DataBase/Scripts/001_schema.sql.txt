@@ -1,0 +1,99 @@
+IF OBJECT_ID('dbo.Usuarios','U') IS NULL
+BEGIN
+  CREATE TABLE dbo.Usuarios(
+    Id INT IDENTITY PRIMARY KEY,
+    Nombre NVARCHAR(100) NOT NULL,
+    Apellido NVARCHAR(100) NOT NULL,
+    UserId NVARCHAR(100) NOT NULL UNIQUE,
+    PasswordHash NVARCHAR(200) NOT NULL,
+    PasswordSalt NVARCHAR(200) NULL,
+    Cedula NVARCHAR(50) NULL,
+    PermissionId INT NULL,
+    Comment NVARCHAR(300) NULL,
+    IsActive BIT NOT NULL DEFAULT 1,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+  );
+END;
+
+IF OBJECT_ID('dbo.ErrorLog','U') IS NULL
+BEGIN
+  CREATE TABLE dbo.ErrorLog(
+    Id BIGINT IDENTITY PRIMARY KEY,
+    ErrorMessage NVARCHAR(4000) NOT NULL,
+    StackTrace NVARCHAR(MAX) NULL,
+    ClassName NVARCHAR(300) NOT NULL,
+    MethodName NVARCHAR(300) NOT NULL,
+    CreatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+  );
+END;
+
+-- sp_GetUsuarioByUserId
+IF OBJECT_ID('[dbo].[sp_GetUsuarioByUserId]','P') IS NULL
+EXEC('CREATE PROCEDURE [dbo].[sp_GetUsuarioByUserId] AS BEGIN SET NOCOUNT ON; END');
+GO
+ALTER PROCEDURE [dbo].[sp_GetUsuarioByUserId]
+  @UserId NVARCHAR(100)
+AS
+BEGIN
+  SET NOCOUNT ON;
+  SELECT TOP 1
+    Id, Nombre, Apellido, UserId, PasswordHash, PasswordSalt, Cedula, PermissionId, Comment, IsActive
+  FROM dbo.Usuarios
+  WHERE UserId = @UserId;
+END
+GO
+
+-- sp_InsertarUsuario
+IF OBJECT_ID('[dbo].[sp_InsertarUsuario]','P') IS NULL
+EXEC('CREATE PROCEDURE [dbo].[sp_InsertarUsuario] AS BEGIN SET NOCOUNT ON; END');
+GO
+ALTER PROCEDURE [dbo].[sp_InsertarUsuario]
+  @Nombre NVARCHAR(100),
+  @Apellido NVARCHAR(100),
+  @UserId NVARCHAR(100),
+  @PasswordHash NVARCHAR(200),
+  @PasswordSalt NVARCHAR(200) = NULL,
+  @Cedula NVARCHAR(50) = NULL,
+  @PermissionId INT = NULL,
+  @Comment NVARCHAR(300) = NULL
+AS
+BEGIN
+  SET NOCOUNT ON;
+
+  INSERT INTO dbo.Usuarios(Nombre, Apellido, UserId, PasswordHash, PasswordSalt, Cedula, PermissionId, Comment)
+  VALUES (@Nombre, @Apellido, @UserId, @PasswordHash, @PasswordSalt, @Cedula, @PermissionId, @Comment);
+
+  SELECT CAST(SCOPE_IDENTITY() AS INT) AS NewId;
+END
+GO
+
+-- spGetPermisosByUsuario (placeholder para tu PermisoRepository)
+IF OBJECT_ID('[dbo].[spGetPermisosByUsuario]','P') IS NULL
+EXEC('CREATE PROCEDURE [dbo].[spGetPermisosByUsuario] AS BEGIN SET NOCOUNT ON; END');
+GO
+ALTER PROCEDURE [dbo].[spGetPermisosByUsuario]
+  @UserId INT
+AS
+BEGIN
+  SET NOCOUNT ON;
+  SELECT CAST(NULL AS INT) AS PermissionId, CAST(NULL AS NVARCHAR(100)) AS PermissionName
+  WHERE 1 = 0;
+END
+GO
+
+-- spInsertErrorLog (para tu ErrorLogger)
+IF OBJECT_ID('[dbo].[spInsertErrorLog]','P') IS NULL
+EXEC('CREATE PROCEDURE [dbo].[spInsertErrorLog] AS BEGIN SET NOCOUNT ON; END');
+GO
+ALTER PROCEDURE [dbo].[spInsertErrorLog]
+  @ErrorMessage NVARCHAR(4000),
+  @StackTrace NVARCHAR(MAX) = NULL,
+  @ClassName NVARCHAR(300),
+  @MethodName NVARCHAR(300)
+AS
+BEGIN
+  SET NOCOUNT ON;
+  INSERT INTO dbo.ErrorLog(ErrorMessage, StackTrace, ClassName, MethodName)
+  VALUES (@ErrorMessage, @StackTrace, @ClassName, @MethodName);
+END
+GO

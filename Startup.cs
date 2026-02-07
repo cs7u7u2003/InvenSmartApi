@@ -1,4 +1,5 @@
-﻿using InvenSmartApi.Repositories;
+﻿using InvenSmartApi.Infrastructure.Database;
+using InvenSmartApi.Repositories;
 using Microsoft.Data.SqlClient;
 using Microsoft.OpenApi.Models;
 using System.Data;
@@ -27,17 +28,14 @@ namespace InvenSmartApi
                 });
             });
 
-            // Logging
             services.AddLogging();
 
-            // Dapper: conexión por request (SCOPED)
+            // Dapper: conexión por request (Scoped)
             services.AddScoped<IDbConnection>(_ =>
                 new SqlConnection(Configuration.GetConnectionString("ConnectionDb")));
 
-            // Controllers
             services.AddControllers();
 
-            // CORS
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowAnyPolicy", builder =>
@@ -46,9 +44,16 @@ namespace InvenSmartApi
                            .AllowAnyHeader());
             });
 
-            // ---- Dependencias propias ----            
+            // ---- Dependencias propias ----
             services.AddSingleton<InvenSmartApi.Utils.ErrorLogger>();
 
+            // ---- Database Initializer (SOLO UNO) ----
+            services.Configure<DatabaseInitializerOptions>(
+                Configuration.GetSection("DatabaseInitializer"));
+
+            services.AddHostedService<DbInitializerHostedService>();
+
+            // Repos/Services
             services.AddScoped<IUsuarioRepository, UsuarioRepository>();
             services.AddScoped<IPermisoRepository, PermisoRepository>();
             services.AddScoped<IUsuarioService, UsuarioService>();
@@ -65,9 +70,7 @@ namespace InvenSmartApi
             });
 
             if (env.IsDevelopment())
-            {
                 app.UseDeveloperExceptionPage();
-            }
             else
             {
                 app.UseExceptionHandler("/Home/Error");
