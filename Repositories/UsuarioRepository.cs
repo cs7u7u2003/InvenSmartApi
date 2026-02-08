@@ -6,42 +6,37 @@ namespace InvenSmartApi.Repositories
 {
     public class UsuarioRepository : IUsuarioRepository
     {
-        private readonly IDbConnection _dbConnection;
+        private readonly IDbConnection _db;
 
-        public UsuarioRepository(IDbConnection dbConnection)
+        public UsuarioRepository(IDbConnection db) => _db = db;
+
+        public async Task<UsuarioDto?> GetByUserIdAsync(string userId)
         {
-            _dbConnection = dbConnection;
-        }
-
-        public async Task<UsuarioDto> GetUsuarioAsync(Credenciales credenciales)
-        {
-            var parameters = new DynamicParameters();
-            parameters.Add("@UserId", credenciales.Usuario);
-
-            return await _dbConnection.QueryFirstOrDefaultAsync<UsuarioDto>(
+            return await _db.QueryFirstOrDefaultAsync<UsuarioDto>(
                 "[dbo].[sp_GetUsuarioByUserId]",
-                parameters,
+                new { UserId = userId },
                 commandType: CommandType.StoredProcedure);
         }
 
-        public async Task<bool> InsertarUsuarioAsync(UsuarioDto usuario)
+        public async Task<int> InsertAsync(UsuarioDto usuario)
         {
-            var parameters = new DynamicParameters();
-            parameters.Add("@Nombre", usuario.Nombre);
-            parameters.Add("@Apellido", usuario.Apellido);
-            parameters.Add("@UserId", usuario.UserId);
-            parameters.Add("@PasswordHash", usuario.PasswordHash);
-            parameters.Add("@PasswordSalt", usuario.PasswordSalt);
-            parameters.Add("@Cedula", usuario.Cedula);
-            parameters.Add("@PermissionId", usuario.PermissionId);
-            parameters.Add("@Comment", usuario.Comment);
-
-            var result = await _dbConnection.ExecuteAsync(
+            // si tu SP sp_InsertarUsuario devuelve NewId, lo leemos:
+            var newId = await _db.ExecuteScalarAsync<int>(
                 "[dbo].[sp_InsertarUsuario]",
-                parameters,
+                new
+                {
+                    Nombre = usuario.Nombre,
+                    Apellido = usuario.Apellido,
+                    UserId = usuario.UserId,
+                    PasswordHash = usuario.PasswordHash,
+                    PasswordSalt = usuario.PasswordSalt,
+                    Cedula = usuario.Cedula,
+                    PermissionId = (int?)null, // ya lo estamos migrando a RBAC
+                    Comment = usuario.Comment
+                },
                 commandType: CommandType.StoredProcedure);
 
-            return result > 0;
+            return newId;
         }
     }
 }

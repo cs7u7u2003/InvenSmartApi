@@ -1,8 +1,9 @@
-﻿using InvenSmartApi.Models;
-using Microsoft.AspNetCore.Mvc;
+﻿using InvenSmartApi.Models.Users;
+
+namespace InvenSmartApi.Services;
 
 public interface IUsuarioService
 {
-    Task<IActionResult> GetUsuarioAsync(Credenciales credenciales);
-    Task<bool> InsertarUsuarioAsync(UsuarioQuery usuario);
+    Task<UserResponse?> GetByUserIdAsync(string userId);
+    Task<(bool ok, string? error, UserResponse? user)> CreateAsync(CreateUserRequest req);
 }

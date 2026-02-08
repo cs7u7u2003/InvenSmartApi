@@ -41,26 +41,25 @@ public sealed class AuthController : ControllerBase
 
         if (user is null) return Unauthorized("Credenciales inválidas.");
 
-        // 2) Verificar password
-        var ok = LegacyPasswordHasher.VerifyPasswordHash(req.Password, user.PasswordHash, user.PasswordSalt);
+        // ✅ (Punto 4) Validar que esté activo (requiere que el SP devuelva IsActive)
+        if (!user.IsActive) return Unauthorized("Usuario inactivo.");
 
+        // 2) Verificar password (HMACSHA512 + salt)
+        var ok = PasswordHasher.VerifyPassword(req.Password, user.PasswordHash, user.PasswordSalt);
         if (!ok) return Unauthorized("Credenciales inválidas.");
 
-        // 3) Roles (ajusta según tus tablas/SP reales)
-        // Recomendado: SP que devuelva lista de roles del usuario.
-        // Si todavía no lo tienes, te dejo un SP al final.
+        // 3) Roles
         var roles = (await _db.QueryAsync<string>(
             "[dbo].[spGetRolesByUsuario]",
             new { UserId = user.Id },
             commandType: CommandType.StoredProcedure)).ToArray();
 
-        // 4) Permisos (tu PermisoRepository ya llama spGetPermisosByUsuario)
+        // 4) Permisos
         var permisosRaw = (await _db.QueryAsync<PermisoFormularioDto>(
             "[dbo].[spGetPermisosByUsuario]",
             new { UserId = user.Id },
             commandType: CommandType.StoredProcedure)).ToList();
 
-        // Convertir a "FORMULARIO.PERMISO"
         var perms = permisosRaw
             .Where(x => !string.IsNullOrWhiteSpace(x.FormularioName) && !string.IsNullOrWhiteSpace(x.PermisoName))
             .Select(x => $"{x.FormularioName}.{x.PermisoName}".ToUpperInvariant())
