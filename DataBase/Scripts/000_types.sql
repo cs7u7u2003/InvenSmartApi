@@ -1,0 +1,3 @@
+IF TYPE_ID('dbo.IntList') IS NULL
+CREATE TYPE dbo.IntList AS TABLE (Id INT NOT NULL);
+GO

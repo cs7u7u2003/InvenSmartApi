@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 
-public class PasswordHasher
+public class LegacyPasswordHasher
 {
     // Generar un hash para el password y una sal única
     public static (byte[] passwordHash, byte[] passwordSalt) CreatePasswordHash(string password)

@@ -52,6 +52,9 @@ public sealed class DbInitializerHostedService : IHostedService
         // 3) Ensure required objects in target database
         await EnsureRequiredObjectsAsync(rawConnStr, cancellationToken);
 
+        await DbSeedAdmin.EnsureAdminAsync(rawConnStr, cancellationToken);
+        _logger.LogInformation("Admin seed OK (admin / P@ssw0rd!).");
+
         _logger.LogInformation("DB init finished OK.");
     }
 

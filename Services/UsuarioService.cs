@@ -23,7 +23,7 @@ public class UsuarioService : IUsuarioService
             var usuario = await _usuarioRepository.GetUsuarioAsync(credenciales);
             if (usuario != null)
             {
-                if (PasswordHasher.VerifyPasswordHash(credenciales.Password, usuario.PasswordHash, usuario.PasswordSalt))
+                if (LegacyPasswordHasher.VerifyPasswordHash(credenciales.Password, usuario.PasswordHash, usuario.PasswordSalt))
                 {
                     var permisos = await _permisoRepository.GetPermisosByUsuarioAsync(usuario.Id);
                     var result = new
@@ -68,7 +68,7 @@ public class UsuarioService : IUsuarioService
             createUsuario.Apellido = usuario.Apellido;
             createUsuario.Cedula = usuario.Cedula;
             createUsuario.UserId = usuario.UserId;
-            (createUsuario.PasswordHash, createUsuario.PasswordSalt) = PasswordHasher.CreatePasswordHash(usuario.Password);
+            (createUsuario.PasswordHash, createUsuario.PasswordSalt) = LegacyPasswordHasher.CreatePasswordHash(usuario.Password);
 
 
             return await _usuarioRepository.InsertarUsuarioAsync(createUsuario);
