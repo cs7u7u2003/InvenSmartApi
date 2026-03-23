@@ -1,6 +1,7 @@
-﻿using Dapper;
-using Microsoft.Data.SqlClient;
+using Dapper;
 using InvenSmartApi.Infrastructure.Security;
+using Microsoft.Data.SqlClient;
+
 namespace InvenSmartApi.Infrastructure.Database;
 
 public static class DbSeedAdmin
@@ -13,18 +14,25 @@ public static class DbSeedAdmin
         await using var conn = new SqlConnection(connStr);
         await conn.OpenAsync(ct);
 
-        var exists = await conn.ExecuteScalarAsync<int>(
-            "SELECT COUNT(1) FROM dbo.Usuarios WHERE UserId = @UserId",
+        var adminRoleId = await conn.ExecuteScalarAsync<int?>(
+            "SELECT TOP 1 Id FROM dbo.Roles WHERE Name = 'Admin'");
+
+        if (adminRoleId is null)
+            throw new InvalidOperationException("Admin role was not created by DatabaseScripts.");
+
+        var existingUser = await conn.QueryFirstOrDefaultAsync<int?>(
+            "SELECT TOP 1 Id FROM dbo.Usuarios WHERE UserId = @UserId",
             new { UserId = userId });
 
-        var (hash, salt) = InvenSmartApi.Infrastructure.Security.PasswordHasher.CreateHash(password);
+        var (hash, salt) = PasswordHasher.CreateHash(password);
 
-
-        if (exists == 0)
+        int userIdValue;
+        if (existingUser is null)
         {
-            await conn.ExecuteAsync(@"
+            userIdValue = await conn.ExecuteScalarAsync<int>(@"
 INSERT INTO dbo.Usuarios (Nombre, Apellido, UserId, PasswordHash, PasswordSalt, Cedula, PermissionId, Comment, IsActive)
-VALUES (@Nombre, @Apellido, @UserId, @PasswordHash, @PasswordSalt, NULL, NULL, 'Seed admin', 1);",
+VALUES (@Nombre, @Apellido, @UserId, @PasswordHash, @PasswordSalt, NULL, NULL, 'Seed admin', 1);
+SELECT CAST(SCOPE_IDENTITY() AS INT);",
                 new
                 {
                     Nombre = "Admin",
@@ -33,17 +41,33 @@ VALUES (@Nombre, @Apellido, @UserId, @PasswordHash, @PasswordSalt, NULL, NULL, '
                     PasswordHash = hash,
                     PasswordSalt = salt
                 });
-
-            return;
         }
-
-        // Si ya existe, resetea password (para no perder tiempo en DEV)
-        await conn.ExecuteAsync(@"
+        else
+        {
+            userIdValue = existingUser.Value;
+            await conn.ExecuteAsync(@"
 UPDATE dbo.Usuarios
 SET PasswordHash = @PasswordHash,
     PasswordSalt = @PasswordSalt,
     IsActive = 1
-WHERE UserId = @UserId;",
-            new { PasswordHash = hash, PasswordSalt = salt, UserId = userId });
+WHERE Id = @Id;",
+                new { Id = userIdValue, PasswordHash = hash, PasswordSalt = salt });
+        }
+
+        await conn.ExecuteAsync(@"
+IF NOT EXISTS (SELECT 1 FROM dbo.UsuarioRoles WHERE UsuarioId = @UsuarioId AND RoleId = @RoleId)
+BEGIN
+    INSERT INTO dbo.UsuarioRoles(UsuarioId, RoleId) VALUES (@UsuarioId, @RoleId);
+END",
+            new { UsuarioId = userIdValue, RoleId = adminRoleId.Value });
+
+        await conn.ExecuteAsync(@"
+INSERT INTO dbo.RolPermisos(RoleId, PermisoId)
+SELECT @RoleId, p.Id
+FROM dbo.Permisos p
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.RolPermisos rp WHERE rp.RoleId = @RoleId AND rp.PermisoId = p.Id
+);",
+            new { RoleId = adminRoleId.Value });
     }
 }

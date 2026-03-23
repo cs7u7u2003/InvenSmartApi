@@ -1,4 +1,4 @@
-﻿using InvenSmartApi.Infrastructure.Database;
+using InvenSmartApi.Infrastructure.Database;
 using InvenSmartApi.Infrastructure.Security.Permissions;
 using InvenSmartApi.Repositories;
 using InvenSmartApi.Services;
@@ -20,11 +20,9 @@ namespace InvenSmartApi
 
         public void ConfigureServices(IServiceCollection services)
         {
-            // Controllers + ApiExplorer (Swagger lo necesita en muchos setups)
             services.AddControllers();
             services.AddEndpointsApiExplorer();
 
-            // Swagger + Bearer
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo
@@ -58,7 +56,6 @@ namespace InvenSmartApi
 
             services.AddLogging();
 
-            // CORS
             services.AddCors(options =>
             {
                 options.AddPolicy("AllowAnyPolicy", builder =>
@@ -67,19 +64,15 @@ namespace InvenSmartApi
                            .AllowAnyHeader());
             });
 
-            // Dapper Connection (scoped)
             services.AddScoped<IDbConnection>(_ =>
                 new SqlConnection(Configuration.GetConnectionString("ConnectionDb")));
 
-            // ErrorLogger debe ser Scoped (usa IDbConnection scoped)
             services.AddScoped<InvenSmartApi.Utils.ErrorLogger>();
 
-            // ---- DB Initializer ----
             services.Configure<DatabaseInitializerOptions>(
                 Configuration.GetSection("DatabaseInitializer"));
             services.AddHostedService<DbInitializerHostedService>();
 
-            // ---- JWT Auth ----
             var jwtKey = Configuration["Jwt:Key"];
             var jwtIssuer = Configuration["Jwt:Issuer"];
             var jwtAudience = Configuration["Jwt:Audience"];
@@ -97,35 +90,28 @@ namespace InvenSmartApi
                     {
                         ValidateIssuerSigningKey = true,
                         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-
                         ValidateIssuer = !string.IsNullOrWhiteSpace(jwtIssuer),
                         ValidIssuer = jwtIssuer,
-
                         ValidateAudience = !string.IsNullOrWhiteSpace(jwtAudience),
                         ValidAudience = jwtAudience,
-
                         ValidateLifetime = true,
                         ClockSkew = TimeSpan.FromMinutes(2)
                     };
                 });
 
-            // ---- Authorization dinámica (Option B) ----
             services.AddAuthorization();
             services.AddSingleton<IAuthorizationPolicyProvider, PermissionPolicyProvider>();
             services.AddScoped<IAuthorizationHandler, PermissionHandler>();
 
-            // Repos/Services
             services.AddScoped<IRolesRepository, RolesRepository>();
             services.AddScoped<IUsuarioRepository, UsuarioRepository>();
             services.AddScoped<IPermisoRepository, PermisoRepository>();
-
             services.AddScoped<IRolesService, RolesService>();
             services.AddScoped<IUsuarioService, UsuarioService>();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
-            // Primero: errores en Development (para ver si algo rompe swagger)
             if (env.IsDevelopment())
                 app.UseDeveloperExceptionPage();
             else
@@ -135,19 +121,16 @@ namespace InvenSmartApi
             }
 
             app.UseHttpsRedirection();
-
             app.UseRouting();
 
-            // Swagger después de routing (setup más estable)
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "InvenSmartApi v1");
-                c.RoutePrefix = string.Empty; // Swagger en la raíz: https://localhost:PUERTO/
+                c.RoutePrefix = "swagger";
             });
 
             app.UseCors("AllowAnyPolicy");
-
             app.UseAuthentication();
             app.UseAuthorization();
 

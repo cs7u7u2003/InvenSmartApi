@@ -1,4 +1,4 @@
-﻿using InvenSmartApi.Infrastructure.Security;
+using InvenSmartApi.Infrastructure.Security;
 using InvenSmartApi.Models;
 using InvenSmartApi.Models.Users;
 using InvenSmartApi.Repositories;
@@ -24,7 +24,7 @@ public sealed class UsuarioService : IUsuarioService
             Apellido = u.Apellido,
             Cedula = u.Cedula,
             Comment = u.Comment,
-            IsActive = true // si tu SP devuelve IsActive, mapéalo aquí
+            IsActive = u.IsActive
         };
     }
 
@@ -57,7 +57,8 @@ public sealed class UsuarioService : IUsuarioService
             PasswordSalt = salt,
             Cedula = req.Cedula?.Trim(),
             Comment = req.Comment?.Trim(),
-            PermissionId = null
+            PermissionId = null,
+            IsActive = true
         };
 
         var newId = await _repo.InsertAsync(dto);

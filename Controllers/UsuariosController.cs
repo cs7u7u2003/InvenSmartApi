@@ -1,4 +1,5 @@
-﻿using InvenSmartApi.Models.Users;
+using InvenSmartApi.Infrastructure.Security.Permissions;
+using InvenSmartApi.Models.Users;
 using InvenSmartApi.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -7,13 +8,14 @@ namespace InvenSmartApi.Controllers;
 
 [ApiController]
 [Route("api/users")]
-[Authorize] // luego lo ajustamos por permisos
+[Authorize]
 public sealed class UsuariosController : ControllerBase
 {
     private readonly IUsuarioService _service;
 
     public UsuariosController(IUsuarioService service) => _service = service;
 
+    [RequirePermission("SCREEN.USERS.VIEW")]
     [HttpGet("{userId}")]
     public async Task<IActionResult> GetByUserId(string userId)
     {
@@ -23,8 +25,8 @@ public sealed class UsuariosController : ControllerBase
         return Ok(user);
     }
 
+    [RequirePermission("USER.CREATE")]
     [HttpPost]
-    [AllowAnonymous] // en DEV lo dejamos abierto; luego lo protegemos con permisos ADMIN
     public async Task<IActionResult> Create([FromBody] CreateUserRequest req)
     {
         var (ok, error, user) = await _service.CreateAsync(req);
